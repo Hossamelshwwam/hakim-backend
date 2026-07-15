@@ -30,7 +30,7 @@ export class AuthService {
   async sendVerificationEmail(to: string, name: string, token: string) {
     await this.mailerService.sendMail({
       to,
-      subject: 'Verify your Threadly account',
+      subject: 'Verify your Hakim account',
       html: `
       <h2>Hi ${name},</h2>
       <p>
@@ -58,7 +58,7 @@ export class AuthService {
   async sendPasswordResetEmail(to: string, name: string, token: string) {
     await this.mailerService.sendMail({
       to,
-      subject: 'Reset your Threadly password',
+      subject: 'Reset your Hakim password',
 
       html: `
       <h2>Hi ${name},</h2>

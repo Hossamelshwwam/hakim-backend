@@ -9,7 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 import { Readable } from 'stream';
 
-const CLOUDINARY_ROOT_FOLDER = 'threadly';
+const CLOUDINARY_ROOT_FOLDER = 'hakim';
 
 @Injectable()
 export class CloudinaryService implements OnModuleInit {
@@ -74,7 +74,7 @@ export class CloudinaryService implements OnModuleInit {
 
   /**
    * Fallback for URL-based deletion. Only reliable for single-level
-   * subfolders (e.g. `threadly/products/abc123.jpg`). Prefer
+   * subfolders (e.g. `hakim/products/abc123.jpg`). Prefer
    * `deleteFileByPublicId` wherever you control the schema.
    */
   async deleteFile(url: string): Promise<void> {

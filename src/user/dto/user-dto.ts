@@ -18,18 +18,3 @@ export const changePasswordSchema = z.object({
 });
 
 export class ChangePasswordDto extends createZodDto(changePasswordSchema) {}
-
-export const getAllAdminsQueryDto = z.object({
-  page: z.coerce.number().min(1).optional(),
-  limit: z.coerce.number().min(1).max(100).optional(),
-  role: z.enum(['doctor', 'patient', 'hospital_manager']).optional(),
-  search: z.string().optional(),
-});
-
-export class GetAllAdminsQueryDto extends createZodDto(getAllAdminsQueryDto) {}
-
-export const updateAdminDto = z.object({
-  isActive: z.boolean(),
-});
-
-export class UpdateAdminDto extends createZodDto(updateAdminDto) {}

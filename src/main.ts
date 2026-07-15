@@ -28,8 +28,8 @@ async function bootstrap() {
   app.useGlobalPipes(new ZodValidationPipe());
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('Threadly')
-    .setDescription('Threadly description')
+    .setTitle('Hakim')
+    .setDescription('Hakim description')
     .setVersion('1.0')
     .addBearerAuth()
     .build();

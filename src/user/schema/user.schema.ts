@@ -3,9 +3,7 @@ import { HydratedDocument, Types } from 'mongoose';
 
 export type UserDocument = HydratedDocument<User>;
 
-@Schema({
-  timestamps: true,
-})
+@Schema({ timestamps: true })
 export class User {
   @Prop({
     type: String,
@@ -19,7 +17,6 @@ export class User {
   @Prop({
     type: String,
     required: [true, 'Email is required'],
-    unique: true,
     lowercase: true,
     trim: true,
     match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email'],
@@ -40,12 +37,11 @@ export class User {
   role: string;
 
   @Prop({
-    type: new Types.ObjectId(),
+    type: Types.ObjectId,
     ref: 'Hospital',
     required: true,
-    unique: true,
   })
-  hospital_id: string;
+  hospital_id: Types.ObjectId;
 
   @Prop({ type: String, trim: true })
   phone: string;
@@ -72,3 +68,4 @@ export class User {
 export const UserSchema = SchemaFactory.createForClass(User);
 
 UserSchema.index({ role: 1 });
+UserSchema.index({ hospital_id: 1, email: 1 }, { unique: true }); // email unique PER hospital

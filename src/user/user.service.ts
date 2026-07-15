@@ -1,19 +1,10 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import type { UserDocument } from './schema/user.schema';
 import { Model } from 'mongoose';
-import {
-  GetAllAdminsQueryDto,
-  UpdateAdminDto,
-  ChangePasswordDto,
-  UpdateProfileDto,
-} from './dto/user-dto';
+import { ChangePasswordDto, UpdateProfileDto } from './dto/user-dto';
 import { PaginationService } from '../common/services/pagination.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
@@ -65,7 +56,7 @@ export class UserService {
 
   async uploadUserImage(userId: string, file: Express.Multer.File) {
     const user = await this.userModel.findById(userId);
-    if (!user) throw new NotFoundException('Category not found');
+    if (!user) throw new NotFoundException('User not found');
 
     if (user.avatar)
       await this.cloudinaryService.deleteFile(user.avatar).catch(() => null);
@@ -95,64 +86,5 @@ export class UserService {
 
     user.passwordHash = hashPassword;
     await user.save();
-  }
-
-  // ── Admin: list users ─────────────────────────────────────────────────────────
-  async getAllAdmins(query: GetAllAdminsQueryDto) {
-    const { skip, limit, page } = this.paginationService.getPagination(
-      query.page,
-      query.limit,
-    );
-
-    const filter: Record<string, unknown> = {};
-    if (query.role) filter.role = query.role;
-    if (query.search) {
-      filter.$or = [
-        { name: { $regex: query.search, $options: 'i' } },
-        { email: { $regex: query.search, $options: 'i' } },
-      ];
-    }
-
-    const [users, total] = await Promise.all([
-      this.userModel
-        .find(filter)
-        .select('-passwordHash')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit),
-      this.userModel.countDocuments(filter),
-    ]);
-
-    return {
-      users,
-      pagination: this.paginationService.buildPaginationMeta(
-        total,
-        page,
-        limit,
-      ),
-    };
-  }
-
-  // ── Admin: get user detail ────────────────────────────────────────────────────
-  async getAdmin(userId: string) {
-    const user = await this.userModel.findById(userId).select('-passwordHash');
-    if (!user) throw new NotFoundException('User not found');
-
-    return {
-      user,
-    };
-  }
-
-  // ── Admin: suspend / reactivate user ─────────────────────────────────────────
-  async updateAdmin(userId: string, body: UpdateAdminDto) {
-    const user = await this.userModel.findById(userId);
-    if (!user) throw new NotFoundException('User not found');
-
-    if (user.role === 'admin')
-      throw new ForbiddenException('Cannot modify another admin');
-
-    user.isActive = body.isActive;
-    await user.save();
-    return user;
   }
 }

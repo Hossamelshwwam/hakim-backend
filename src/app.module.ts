@@ -10,6 +10,13 @@ import { AuthModule } from './auth/auth.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { SharedModule } from './common/module/shared.module';
 import { TestModule } from './test/test.module';
+import { APP_GUARD } from '@nestjs/core';
+import { TenantGuard } from './common/guards/tenant.guard';
+import { HospitalModule } from './hospital/hospital.module';
+import { BranchController } from './branch/branch.controller';
+import { BranchModule } from './branch/branch.module';
+import { HospitalApplicationModule } from './hospital-application/hospital-application.module';
+import { PlatformAdminModule } from './platform-admin/platform-admin.module';
 
 @Module({
   imports: [
@@ -42,11 +49,16 @@ import { TestModule } from './test/test.module';
     }),
     SharedModule,
     CloudinaryModule,
+    HospitalModule,
     UserModule,
     AuthModule,
     TestModule,
+    HospitalModule,
+    BranchModule,
+    HospitalApplicationModule,
+    PlatformAdminModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [AppController, BranchController],
+  providers: [AppService, { provide: APP_GUARD, useClass: TenantGuard }],
 })
 export class AppModule {}
