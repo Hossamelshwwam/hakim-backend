@@ -18,7 +18,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "seed:platform-admin": "ts-node -r tsconfig-paths/register scripts/seed-platform-admin.ts"
+    "seed:platform-admin": "ts-node -r tsconfig-paths/register scripts/seed-platform-admin.ts",
+    "seed:plans": "ts-node -r tsconfig-paths/register scripts/seed-plans.ts"
   },
   "dependencies": {
     "@anatine/zod-openapi": "^2.2.8",
@@ -30,6 +31,7 @@
     "@nestjs/mongoose": "^11.0.4",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/schedule": "^6.1.3",
     "@nestjs/swagger": "^11.4.4",
     "@types/multer": "^2.1.0",
     "bcryptjs": "^3.0.3",
