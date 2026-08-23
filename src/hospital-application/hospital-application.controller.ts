@@ -46,7 +46,12 @@ export class HospitalApplicationController {
         ownerName: { type: 'string' },
         ownerEmail: { type: 'string' },
         ownerPhone: { type: 'string' },
-        plan: { type: 'string', enum: ['basic', 'pro', 'enterprise'] },
+        plan: { type: 'string' },
+        billingCycle: {
+          type: 'string',
+          enum: ['monthly', 'yearly'],
+          default: 'monthly',
+        },
         paymentProof: { type: 'string', format: 'binary' },
       },
     },

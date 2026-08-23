@@ -1,18 +1,20 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import type { UserDocument } from './schema/user.schema';
 import { Model } from 'mongoose';
 import { ChangePasswordDto, UpdateProfileDto } from './dto/user-dto';
-import { PaginationService } from '../common/services/pagination.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel('User') private readonly userModel: Model<UserDocument>,
-    private readonly paginationService: PaginationService,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
@@ -39,13 +41,25 @@ export class UserService {
   }
 
   async getMyProfile(userId: string) {
-    return await this.userModel.findById(userId).select('-password');
+    return await this.userModel
+      .findById(userId)
+      .select('-password')
+      .populate('hospital_id', 'name slug');
   }
 
   // ── Update own profile ────────────────────────────────────────────────────────
   async updateMyProfile(userId: string, body: UpdateProfileDto) {
     const user = await this.userModel.findById(userId);
     if (!user) throw new NotFoundException('User not found');
+
+    if (body.phone && body.phone !== user.phone) {
+      const phoneOwner = await this.userModel.findOne({
+        phone: body.phone,
+        _id: { $ne: user._id },
+      });
+      if (phoneOwner)
+        throw new ConflictException('Phone number already in use');
+    }
 
     if (body.name) user.name = body.name;
     if (body.phone) user.phone = body.phone;

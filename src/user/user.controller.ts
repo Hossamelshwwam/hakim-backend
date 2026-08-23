@@ -14,13 +14,19 @@ import {
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { ChangePasswordDto, UpdateProfileDto } from './dto/user-dto';
-import { ApiBearerAuth, ApiBody, ApiConsumes } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiSecurity,
+} from '@nestjs/swagger';
 import { AuthRoles } from '../common/decorator/auth-roles.decorator';
 import type { AuthUser } from '../common/types/user.type';
 import { CurrentUser } from '../common/decorator/current-user.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { multerConfig } from '../cloudinary/multer.config';
 
+@ApiSecurity('tenant-slug')
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}

@@ -19,6 +19,8 @@ import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from 'src/auth/auth.service';
+import { PaymentService } from '../payment/payment.service';
+import type { PlanDocument } from '../plan/schema/plan.schema';
 
 @Injectable()
 export class HospitalApplicationService {
@@ -28,22 +30,61 @@ export class HospitalApplicationService {
     @InjectModel('Hospital')
     private readonly hospitalModel: Model<HospitalDocument>,
     @InjectModel('User') private readonly userModel: Model<UserDocument>,
+    @InjectModel('Plan')
+    private readonly planModel: Model<PlanDocument>,
     private readonly authService: AuthService,
     private readonly cloudinaryService: CloudinaryService,
     private readonly mailerService: MailerService,
     private readonly configService: ConfigService,
+    private readonly paymentService: PaymentService,
   ) {}
 
   async apply(body: ApplyDto, file: Express.Multer.File) {
     if (!file) throw new BadRequestException('Payment proof is required');
 
-    const [existingHospital, existingApplication] = await Promise.all([
+    // Plans are DB-managed now — validate the slug early so applications
+    // can't be submitted against a deactivated/renamed plan
+    const plan = await this.planModel.findOne({
+      slug: body.plan,
+      isActive: true,
+    });
+    if (!plan)
+      throw new BadRequestException(
+        `Plan "${body.plan}" is not available right now`,
+      );
+
+    const [
+      existingHospital,
+      existingApplication,
+      existingUser,
+      pendingDuplicate,
+    ] = await Promise.all([
       this.hospitalModel.findOne({ slug: body.slug }),
       this.applicationModel.findOne({ slug: body.slug, status: 'pending' }),
+      // Owner already has an account anywhere on the platform?
+      this.userModel.findOne({
+        $or: [{ email: body.ownerEmail }, { phone: body.ownerPhone }],
+      }),
+      // Same owner already under review with a different slug?
+      this.applicationModel.findOne({
+        status: 'pending',
+        $or: [{ ownerEmail: body.ownerEmail }, { ownerPhone: body.ownerPhone }],
+        slug: { $ne: body.slug },
+      }),
     ]);
     if (existingHospital || existingApplication) {
       throw new ConflictException(
         'This slug is already taken or pending review',
+      );
+    }
+    if (existingUser) {
+      throw new ConflictException(
+        'An account with this email or phone already exists',
+      );
+    }
+    if (pendingDuplicate) {
+      throw new ConflictException(
+        'You already have an application under review',
       );
     }
 
@@ -52,8 +93,15 @@ export class HospitalApplicationService {
       'payment-proofs',
     );
 
+    // Store the resolved plan reference, not the client-supplied slug string
     const application = await this.applicationModel.create({
-      ...body,
+      hospitalName: body.hospitalName,
+      slug: body.slug,
+      ownerName: body.ownerName,
+      ownerEmail: body.ownerEmail,
+      ownerPhone: body.ownerPhone,
+      billingCycle: body.billingCycle,
+      plan_id: plan._id,
       paymentProofUrl: upload.secure_url,
     });
 
@@ -62,11 +110,19 @@ export class HospitalApplicationService {
 
   async findAll(query: ListApplicationsQueryDto) {
     const filter = query.status ? { status: query.status } : {};
-    return this.applicationModel.find(filter).sort({ createdAt: -1 });
+    return this.applicationModel
+      .find(filter)
+      .populate('plan_id', 'slug displayName monthlyPrice yearlyPrice currency')
+      .sort({ createdAt: -1 });
   }
 
   async findById(id: string) {
-    const application = await this.applicationModel.findById(id);
+    const application = await this.applicationModel
+      .findById(id)
+      .populate(
+        'plan_id',
+        'slug displayName monthlyPrice yearlyPrice currency',
+      );
     if (!application) throw new NotFoundException('Application not found');
     return application;
   }
@@ -84,10 +140,32 @@ export class HospitalApplicationService {
     if (existingHospital)
       throw new ConflictException('Slug was taken by another hospital');
 
+    // Resolve the plan FIRST — if it's gone we must fail before creating
+    // any hospital/user/ledger records (no orphans)
+    const plan = await this.planModel.findOne({
+      _id: application.plan_id,
+      isActive: true,
+    });
+    if (!plan)
+      throw new BadRequestException(
+        'The selected plan is no longer available — reject the application or contact the hospital to re-apply',
+      );
+
     const hospital = await this.hospitalModel.create({
       name: application.hospitalName,
       slug: application.slug,
       status: 'active',
+    });
+
+    // Open the financial ledger: first period = approved (the proof was
+    // verified during this review), next invoice is generated immediately.
+    const billingCycle = application.billingCycle ?? 'monthly';
+    const { periodEnd } = await this.paymentService.provisionFirstCycle({
+      hospital,
+      plan,
+      billingCycle,
+      startDate: new Date(),
+      paymentProofUrl: application.paymentProofUrl,
     });
 
     // Random password placeholder — user will reset it via emailed link before first login
@@ -116,7 +194,13 @@ export class HospitalApplicationService {
     application.createdHospitalId = hospital._id;
     await application.save();
 
-    await this.sendApprovalEmail(user.email, user.name, hospital.slug, token);
+    await this.sendApprovalEmail(user.email, user.name, hospital.slug, token, {
+      planName: plan.displayName,
+      billingCycle,
+      amount: billingCycle === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice,
+      currency: plan.currency,
+      paidThrough: periodEnd,
+    });
 
     return { hospital, user };
   }
@@ -147,13 +231,34 @@ export class HospitalApplicationService {
     name: string,
     slug: string,
     token: string,
+    subscription: {
+      planName: string;
+      billingCycle: 'monthly' | 'yearly';
+      amount: number;
+      currency: string;
+      paidThrough: Date;
+    },
   ) {
+    const paidThrough = subscription.paidThrough.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC',
+    });
+
     await this.mailerService.sendMail({
       to,
       subject: 'Your Hakim hospital account is approved!',
       html: `
           <h2>Hi ${name},</h2>
-          <p>Your hospital application has been approved. Set your password to get started:</p>
+          <p>Your hospital application has been approved.</p>
+          <p>
+            <strong>${subscription.planName}</strong> plan
+            (${subscription.billingCycle} — ${subscription.amount} ${subscription.currency}/cycle)
+            active through <strong>${paidThrough}</strong>.
+          </p>
+          <p>You can manage payments any time from your hospital dashboard.</p>
+          <p>Set your password to get started:</p>
           <a href="${this.configService.get('CLIENT_URL')}/reset-password?token=${token}&hospital=${slug}">
             Set Password
           </a>

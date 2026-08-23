@@ -32,9 +32,19 @@ async function bootstrap() {
     .setDescription('Hakim description')
     .setVersion('1.0')
     .addBearerAuth()
+    .addApiKey(
+      {
+        type: 'apiKey',
+        in: 'header',
+        name: 'x-tenant-slug',
+        description: 'Tenant (hospital) slug',
+      },
+      'tenant-slug', // name of this security scheme, used below
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
+  document.security = [{ bearer: [], 'tenant-slug': [] }];
   SwaggerModule.setup('api-docs', app, document);
 
   const port = config.get<number>('PORT', 3000);

@@ -1,8 +1,10 @@
 // hospital/schema/hospital.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 
 export type HospitalDocument = HydratedDocument<Hospital>;
+
+export type BillingCycle = 'monthly' | 'yearly';
 
 @Schema({ timestamps: true })
 export class Hospital {
@@ -34,6 +36,20 @@ export class Hospital {
     default: 'active',
   })
   status: string;
+
+  @Prop({ type: Types.ObjectId, ref: 'Plan' })
+  plan_id?: Types.ObjectId;
+
+  @Prop({
+    type: String,
+    enum: ['monthly', 'yearly'],
+    default: 'monthly',
+  })
+  billingCycle?: BillingCycle;
+
+  // Paid-through date: end of the last approved payment period
+  @Prop({ type: Date })
+  currentPeriodEnd?: Date;
 }
 
 export const HospitalSchema = SchemaFactory.createForClass(Hospital);

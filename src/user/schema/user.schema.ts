@@ -68,4 +68,8 @@ export class User {
 export const UserSchema = SchemaFactory.createForClass(User);
 
 UserSchema.index({ role: 1 });
+// Email is unique across the whole platform (not just per hospital)
+UserSchema.index({ email: 1 }, { unique: true });
+// Phone unique when present — many users may have no phone at all
+UserSchema.index({ phone: 1 }, { unique: true, sparse: true });
 UserSchema.index({ hospital_id: 1, email: 1 }, { unique: true }); // email unique PER hospital

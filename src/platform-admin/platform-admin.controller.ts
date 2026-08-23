@@ -1,6 +1,6 @@
 // platform-admin/platform-admin.controller.ts
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { PlatformAdminService } from './platform-admin.service';
 import {
   PlatformAdminForgotPasswordDto,
@@ -16,6 +16,14 @@ import { CurrentPlatformAdmin } from './decorator/current-platform-admin.decorat
 export class PlatformAdminController {
   constructor(private readonly platformAdminService: PlatformAdminService) {}
 
+  @ApiBody({
+    schema: {
+      example: {
+        email: 'h.elshwwam123@gmail.com',
+        password: 'Hossam123!',
+      },
+    },
+  })
   @Post('login')
   async login(@Body() body: PlatformAdminLoginDto) {
     const data = await this.platformAdminService.login(body);

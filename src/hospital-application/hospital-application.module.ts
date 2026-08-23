@@ -8,6 +8,8 @@ import { HospitalModule } from 'src/hospital/hospital.module';
 import { CloudinaryModule } from 'src/cloudinary/cloudinary.module';
 import { PlatformAdminModule } from 'src/platform-admin/platform-admin.module';
 import { UserSchema } from 'src/user/schema/user.schema';
+import { PlanSchema } from 'src/plan/schema/plan.schema';
+import { PaymentModule } from 'src/payment/payment.module';
 
 @Module({
   providers: [HospitalApplicationService],
@@ -17,10 +19,12 @@ import { UserSchema } from 'src/user/schema/user.schema';
     MongooseModule.forFeature([
       { name: 'HospitalApplication', schema: HospitalApplicationSchema },
       { name: 'User', schema: UserSchema },
+      { name: 'Plan', schema: PlanSchema },
     ]),
     HospitalModule,
     CloudinaryModule,
     PlatformAdminModule,
+    PaymentModule,
   ],
 })
 export class HospitalApplicationModule {}

@@ -15,12 +15,21 @@ import { TenantGuard } from './common/guards/tenant.guard';
 import { HospitalModule } from './hospital/hospital.module';
 import { BranchController } from './branch/branch.controller';
 import { BranchModule } from './branch/branch.module';
+import { ScheduleModule } from '@nestjs/schedule';
 import { HospitalApplicationModule } from './hospital-application/hospital-application.module';
 import { PlatformAdminModule } from './platform-admin/platform-admin.module';
+import { DepartmentModule } from './department/department.module';
+import { DoctorModule } from './doctor/doctor.module';
+import { PatientModule } from './patient/patient.module';
+import { ScheduleModule as ClinicScheduleModule } from './schedule/schedule.module';
+import { AppointmentModule } from './appointment/appointment.module';
+import { PlanModule } from './plan/plan.module';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     MongooseModule.forRootAsync({
       useFactory: (config: ConfigService) => ({
         uri: config.get<string>('MONGO_URI'),
@@ -53,10 +62,16 @@ import { PlatformAdminModule } from './platform-admin/platform-admin.module';
     UserModule,
     AuthModule,
     TestModule,
-    HospitalModule,
     BranchModule,
     HospitalApplicationModule,
     PlatformAdminModule,
+    DepartmentModule,
+    DoctorModule,
+    PatientModule,
+    ClinicScheduleModule,
+    AppointmentModule,
+    PlanModule,
+    PaymentModule,
   ],
   controllers: [AppController, BranchController],
   providers: [AppService, { provide: APP_GUARD, useClass: TenantGuard }],

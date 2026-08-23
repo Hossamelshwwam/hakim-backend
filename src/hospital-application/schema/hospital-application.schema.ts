@@ -43,12 +43,21 @@ export class HospitalApplication {
   @Prop({ type: String, required: true, trim: true })
   ownerPhone: string;
 
+  // Resolved reference to the chosen Plan (clients submit the stable slug;
+  // we store the ObjectId so plan edits never orphan applications)
   @Prop({
-    type: String,
-    enum: ['basic', 'pro', 'enterprise'],
+    type: Types.ObjectId,
+    ref: 'Plan',
     required: true,
   })
-  plan: string;
+  plan_id: Types.ObjectId;
+
+  @Prop({
+    type: String,
+    enum: ['monthly', 'yearly'],
+    default: 'monthly',
+  })
+  billingCycle: 'monthly' | 'yearly';
 
   @Prop({ type: String, required: true })
   paymentProofUrl: string;
@@ -77,3 +86,14 @@ export const HospitalApplicationSchema =
   SchemaFactory.createForClass(HospitalApplication);
 
 HospitalApplicationSchema.index({ status: 1 });
+
+// Owner identity is reserved while an application is under review only —
+// once rejected, the same owner may apply again
+HospitalApplicationSchema.index(
+  { ownerEmail: 1 },
+  { unique: true, partialFilterExpression: { status: 'pending' } },
+);
+HospitalApplicationSchema.index(
+  { ownerPhone: 1 },
+  { unique: true, partialFilterExpression: { status: 'pending' } },
+);
