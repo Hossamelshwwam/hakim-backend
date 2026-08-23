@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { UserDocument } from '../user/schema/user.schema';
 import { UserService } from '../user/user.service';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
@@ -92,17 +92,32 @@ export class AuthService {
     return bcrypt.hash(password, 12);
   }
 
-  async register(body: RegisterDto) {
-    const existing = await this.userModel.findOne({ email: body.email });
-    if (existing) throw new ConflictException('Email already in use');
+  async register(body: RegisterDto, hospitalId: string) {
+    // Identity is per hospital — the same person may exist in others
+    const duplicates = await this.userModel.findOne({
+      hospital_id: new Types.ObjectId(hospitalId),
+      $or: [{ email: body.email }, { phone: body.phone }],
+    });
+    if (duplicates) {
+      if (duplicates.email === body.email.toLowerCase())
+        throw new ConflictException(
+          'Email already registered in this hospital',
+        );
+      throw new ConflictException(
+        'Phone number already registered in this hospital',
+      );
+    }
 
     const passwordHash = await this.hashPassword(body.password);
 
     const user = new this.userModel({
       name: body.name,
       email: body.email,
+      phone: body.phone,
       passwordHash,
       role: body.role,
+      // TenantGuard resolved + validated this hospital from x-tenant-slug
+      hospital_id: new Types.ObjectId(hospitalId),
     });
 
     const { verificationTokenExpiry, hashedToken, token } =
@@ -122,9 +137,13 @@ export class AuthService {
     };
   }
 
-  async login(body: LoginDto) {
+  async login(body: LoginDto, hospitalId: string) {
+    // Same email may exist in several hospitals — the tenant decides which
     const user = await this.userModel
-      .findOne({ email: body.email })
+      .findOne({
+        email: body.email,
+        hospital_id: new Types.ObjectId(hospitalId),
+      })
       .select('+passwordHash');
     if (!user || !user.isActive)
       throw new UnauthorizedException('Invalid credentials');
@@ -143,10 +162,13 @@ export class AuthService {
     const accessToken = await this.jwtMethodsService.signAccessToken({
       sub: user._id.toString(),
       role: user.role,
+      // Always the resolved hospital — the one the user logged into
+      hospitalId,
     });
     const refreshToken = await this.jwtMethodsService.signRefreshToken({
       sub: user._id.toString(),
       role: user.role,
+      hospitalId,
     });
 
     return {
@@ -180,8 +202,11 @@ export class AuthService {
     await user.save();
   }
 
-  async sendVerificationEmailAgain(email: string) {
-    const user = await this.userModel.findOne({ email });
+  async sendVerificationEmailAgain(email: string, hospitalId: string) {
+    const user = await this.userModel.findOne({
+      email,
+      hospital_id: new Types.ObjectId(hospitalId),
+    });
     if (!user) throw new NotFoundException('User not found');
 
     const { hashedToken, token, verificationTokenExpiry } =
@@ -192,8 +217,11 @@ export class AuthService {
     await this.sendVerificationEmail(user.email, user.name, token);
   }
 
-  async forgotPassword(email: string) {
-    const user = await this.userModel.findOne({ email });
+  async forgotPassword(email: string, hospitalId: string) {
+    const user = await this.userModel.findOne({
+      email,
+      hospital_id: new Types.ObjectId(hospitalId),
+    });
     if (!user) throw new NotFoundException('User not found');
 
     const { hashedToken, passwordResetExpiry, token } =
@@ -230,7 +258,7 @@ export class AuthService {
 
     const user = await this.userModel
       .findById(payload.sub)
-      .select('isActive role');
+      .select('isActive role hospital_id');
     if (!user || !user.isActive)
       throw new UnauthorizedException('Account not found');
 
@@ -238,6 +266,8 @@ export class AuthService {
       accessToken: await this.jwtMethodsService.signAccessToken({
         sub: user._id.toString(),
         role: user.role,
+        // Re-read from the DB — never trust a stale claim
+        hospitalId: user.hospital_id.toString(),
       }),
     };
   }

@@ -9,13 +9,24 @@ import {
   SendVerificationEmailDto,
 } from './dto/auth.dto';
 import { ApiBody } from '@nestjs/swagger';
+import { SkipTenant } from 'src/common/decorator/skip-tenant.decorator';
+import { CurrentHospital } from 'src/common/decorator/current-hospital.decorator';
 
+// NOTE: register, login, forgot-password and send-verification-email are
+// intentionally NOT @SkipTenant() — identity is per hospital, so they are
+// tenant-scoped. The global TenantGuard resolves the hospital from the
+// x-tenant-slug header (or subdomain). verify-email / reset-password /
+// refresh operate on hashed tokens or the JWT itself, so they stay public.
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
   @Post('register')
-  async register(@Body() body: RegisterDto) {
-    const data = await this.authService.register(body);
+  async register(
+    @Body() body: RegisterDto,
+    @CurrentHospital() hospitalId: string,
+  ) {
+    const data = await this.authService.register(body, hospitalId);
     return {
       success: true,
       statusCode: 201,
@@ -29,13 +40,13 @@ export class AuthController {
   @ApiBody({
     schema: {
       example: {
-        email: 'h.elshwwam123+hospital@gmail.com',
+        email: 'h.elshwwam123@gmail.com',
         password: 'Hossam123!',
       },
     },
   })
-  async login(@Body() body: LoginDto) {
-    const data = await this.authService.login(body);
+  async login(@Body() body: LoginDto, @CurrentHospital() hospitalId: string) {
+    const data = await this.authService.login(body, hospitalId);
     return {
       success: true,
       statusCode: 200,
@@ -44,6 +55,7 @@ export class AuthController {
     };
   }
 
+  @SkipTenant()
   @Get('verify-email/:token')
   async verifyEmail(@Param('token') token: string) {
     await this.authService.verifyEmail(token);
@@ -55,8 +67,11 @@ export class AuthController {
   }
 
   @Post('send-verification-email')
-  async sendVerificationEmail(@Body() body: SendVerificationEmailDto) {
-    await this.authService.sendVerificationEmailAgain(body.email);
+  async sendVerificationEmail(
+    @Body() body: SendVerificationEmailDto,
+    @CurrentHospital() hospitalId: string,
+  ) {
+    await this.authService.sendVerificationEmailAgain(body.email, hospitalId);
     return {
       success: true,
       statusCode: 200,
@@ -65,8 +80,11 @@ export class AuthController {
   }
 
   @Post('forgot-password')
-  async forgotPassword(@Body() body: ForgotPasswordDto) {
-    await this.authService.forgotPassword(body.email);
+  async forgotPassword(
+    @Body() body: ForgotPasswordDto,
+    @CurrentHospital() hospitalId: string,
+  ) {
+    await this.authService.forgotPassword(body.email, hospitalId);
     return {
       success: true,
       statusCode: 200,
@@ -74,6 +92,7 @@ export class AuthController {
     };
   }
 
+  @SkipTenant()
   @Post('reset-password')
   async resetPassword(@Body() body: ResetPasswordDto) {
     await this.authService.resetPassword(body.token, body.password);
@@ -84,6 +103,7 @@ export class AuthController {
     };
   }
 
+  @SkipTenant()
   @Post('refresh')
   async refreshToken(@Body() body: RefreshTokenDto) {
     const data = await this.authService.refreshAccessToken(body.refreshToken);

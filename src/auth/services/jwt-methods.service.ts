@@ -9,13 +9,13 @@ export class JwtMethodsService {
     private jwtService: JwtService,
   ) {}
 
-  signAccessToken(payload: { sub: string; role: string }) {
+  signAccessToken(payload: { sub: string; role: string; hospitalId: string }) {
     return this.jwtService.signAsync(payload, {
       secret: this.configService.get<string>('JWT_SECRET'),
       expiresIn: this.configService.get('JWT_EXPIRES_IN'),
     });
   }
-  signRefreshToken(payload: { sub: string; role: string }) {
+  signRefreshToken(payload: { sub: string; role: string; hospitalId: string }) {
     return this.jwtService.signAsync(payload, {
       secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
       expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN'),

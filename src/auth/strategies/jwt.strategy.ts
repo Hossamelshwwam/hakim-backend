@@ -13,7 +13,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: { sub: string; role: string }) {
-    return { userId: payload.sub, role: payload.role };
+  validate(payload: { sub: string; role: string; hospitalId?: string }) {
+    return {
+      userId: payload.sub,
+      role: payload.role,
+      // Tokens issued before hospital binding carry no claim — an empty
+      // value can never match a real tenant, forcing a re-login
+      hospitalId: payload.hospitalId ?? '',
+    };
   }
 }

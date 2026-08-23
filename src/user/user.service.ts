@@ -53,12 +53,16 @@ export class UserService {
     if (!user) throw new NotFoundException('User not found');
 
     if (body.phone && body.phone !== user.phone) {
+      // Phone uniqueness is per hospital
       const phoneOwner = await this.userModel.findOne({
         phone: body.phone,
+        hospital_id: user.hospital_id,
         _id: { $ne: user._id },
       });
       if (phoneOwner)
-        throw new ConflictException('Phone number already in use');
+        throw new ConflictException(
+          'Phone number already registered in this hospital',
+        );
     }
 
     if (body.name) user.name = body.name;

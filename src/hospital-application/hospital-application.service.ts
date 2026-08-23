@@ -53,33 +53,24 @@ export class HospitalApplicationService {
         `Plan "${body.plan}" is not available right now`,
       );
 
-    const [
-      existingHospital,
-      existingApplication,
-      existingUser,
-      pendingDuplicate,
-    ] = await Promise.all([
-      this.hospitalModel.findOne({ slug: body.slug }),
-      this.applicationModel.findOne({ slug: body.slug, status: 'pending' }),
-      // Owner already has an account anywhere on the platform?
-      this.userModel.findOne({
-        $or: [{ email: body.ownerEmail }, { phone: body.ownerPhone }],
-      }),
-      // Same owner already under review with a different slug?
-      this.applicationModel.findOne({
-        status: 'pending',
-        $or: [{ ownerEmail: body.ownerEmail }, { ownerPhone: body.ownerPhone }],
-        slug: { $ne: body.slug },
-      }),
-    ]);
+    const [existingHospital, existingApplication, pendingDuplicate] =
+      await Promise.all([
+        this.hospitalModel.findOne({ slug: body.slug }),
+        this.applicationModel.findOne({ slug: body.slug, status: 'pending' }),
+        // Anti-spam: one PENDING application per owner at a time. Owning
+        // several hospitals is allowed — but not in parallel reviews.
+        this.applicationModel.findOne({
+          status: 'pending',
+          $or: [
+            { ownerEmail: body.ownerEmail },
+            { ownerPhone: body.ownerPhone },
+          ],
+          slug: { $ne: body.slug },
+        }),
+      ]);
     if (existingHospital || existingApplication) {
       throw new ConflictException(
         'This slug is already taken or pending review',
-      );
-    }
-    if (existingUser) {
-      throw new ConflictException(
-        'An account with this email or phone already exists',
       );
     }
     if (pendingDuplicate) {
