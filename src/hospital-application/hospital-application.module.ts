@@ -1,15 +1,15 @@
 import { Module } from '@nestjs/common';
 import { HospitalApplicationService } from './hospital-application.service';
 import { HospitalApplicationController } from './hospital-application.controller';
-import { AuthModule } from 'src/auth/auth.module';
+import { AuthModule } from '../auth/auth.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { HospitalApplicationSchema } from './schema/hospital-application.schema';
-import { HospitalModule } from 'src/hospital/hospital.module';
-import { CloudinaryModule } from 'src/cloudinary/cloudinary.module';
-import { PlatformAdminModule } from 'src/platform-admin/platform-admin.module';
-import { UserSchema } from 'src/user/schema/user.schema';
-import { PlanSchema } from 'src/plan/schema/plan.schema';
-import { PaymentModule } from 'src/payment/payment.module';
+import { HospitalModule } from '../hospital/hospital.module';
+import { CloudinaryModule } from '../cloudinary/cloudinary.module';
+import { PlatformAdminModule } from '../platform-admin/platform-admin.module';
+import { UserSchema } from '../user/schema/user.schema';
+import { PlanSchema } from '../plan/schema/plan.schema';
+import { PaymentModule } from '../payment/payment.module';
 
 @Module({
   providers: [HospitalApplicationService],

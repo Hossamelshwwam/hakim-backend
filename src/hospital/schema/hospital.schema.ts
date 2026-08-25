@@ -37,6 +37,24 @@ export class Hospital {
   })
   status: string;
 
+  // ── Profile ─────────────────────────────────────────────────────────────────
+  @Prop({ type: String, trim: true })
+  phone?: string;
+
+  @Prop({
+    type: String,
+    trim: true,
+    lowercase: true,
+    match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email'],
+  })
+  email?: string;
+
+  @Prop({ type: String, trim: true, maxlength: 300 })
+  address?: string;
+
+  @Prop({ type: String, trim: true })
+  logoUrl?: string;
+
   @Prop({ type: Types.ObjectId, ref: 'Plan' })
   plan_id?: Types.ObjectId;
 

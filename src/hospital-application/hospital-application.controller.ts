@@ -24,8 +24,8 @@ import {
 } from './dto/hospital-application.dto';
 import { SkipTenant } from '../common/decorator/skip-tenant.decorator';
 import { multerConfig } from '../cloudinary/multer.config';
-import { PlatformAuthGuard } from 'src/platform-admin/guards/platform-auth.guard';
-import { CurrentPlatformAdmin } from 'src/platform-admin/decorator/current-platform-admin.decorator';
+import { PlatformAuthGuard } from '../platform-admin/guards/platform-auth.guard';
+import { CurrentPlatformAdmin } from '../platform-admin/decorator/current-platform-admin.decorator';
 
 @SkipTenant()
 @Controller('hospital-applications')

@@ -7,7 +7,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import type { UserDocument } from './schema/user.schema';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { ChangePasswordDto, UpdateProfileDto } from './dto/user-dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 
@@ -17,6 +17,17 @@ export class UserService {
     @InjectModel('User') private readonly userModel: Model<UserDocument>,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
+
+  /**
+   * Every "me" lookup is scoped to the account's hospital — the JWT carries
+   * hospitalId and the binding guard guarantees it matches the tenant header.
+   */
+  private findScoped(userId: string, hospitalId: string) {
+    return this.userModel.findOne({
+      _id: new Types.ObjectId(userId),
+      hospital_id: new Types.ObjectId(hospitalId),
+    });
+  }
 
   comparePassword(plain: string, passwordHash: string): Promise<boolean> {
     return bcrypt.compare(plain, passwordHash);
@@ -40,16 +51,19 @@ export class UserService {
     return bcrypt.hash(password, 12);
   }
 
-  async getMyProfile(userId: string) {
-    return await this.userModel
-      .findById(userId)
+  async getMyProfile(userId: string, hospitalId: string) {
+    return this.findScoped(userId, hospitalId)
       .select('-password')
       .populate('hospital_id', 'name slug');
   }
 
   // ── Update own profile ────────────────────────────────────────────────────────
-  async updateMyProfile(userId: string, body: UpdateProfileDto) {
-    const user = await this.userModel.findById(userId);
+  async updateMyProfile(
+    userId: string,
+    hospitalId: string,
+    body: UpdateProfileDto,
+  ) {
+    const user = await this.findScoped(userId, hospitalId);
     if (!user) throw new NotFoundException('User not found');
 
     if (body.phone && body.phone !== user.phone) {
@@ -72,8 +86,12 @@ export class UserService {
     return user;
   }
 
-  async uploadUserImage(userId: string, file: Express.Multer.File) {
-    const user = await this.userModel.findById(userId);
+  async uploadUserImage(
+    userId: string,
+    hospitalId: string,
+    file: Express.Multer.File,
+  ) {
+    const user = await this.findScoped(userId, hospitalId);
     if (!user) throw new NotFoundException('User not found');
 
     if (user.avatar)
@@ -90,8 +108,14 @@ export class UserService {
   }
 
   // ── Change password ───────────────────────────────────────────────────────────
-  async changePassword(userId: string, body: ChangePasswordDto) {
-    const user = await this.userModel.findById(userId).select('+passwordHash');
+  async changePassword(
+    userId: string,
+    hospitalId: string,
+    body: ChangePasswordDto,
+  ) {
+    const user = await this.findScoped(userId, hospitalId).select(
+      '+passwordHash',
+    );
     if (!user) throw new NotFoundException('User not found');
 
     const valid = await this.comparePassword(

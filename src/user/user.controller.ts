@@ -64,7 +64,11 @@ export class UserController {
       throw new HttpException('No file uploaded', HttpStatus.BAD_REQUEST);
     }
 
-    const data = await this.userService.uploadUserImage(user.userId, file);
+    const data = await this.userService.uploadUserImage(
+      user.userId,
+      user.hospitalId,
+      file,
+    );
     return { data, message: 'Image uploaded', success: true };
   }
 
@@ -72,7 +76,10 @@ export class UserController {
   @AuthRoles()
   @Get('me')
   async getMe(@CurrentUser() user: AuthUser) {
-    const data = await this.userService.getMyProfile(user.userId);
+    const data = await this.userService.getMyProfile(
+      user.userId,
+      user.hospitalId,
+    );
     return {
       success: true,
       data,
@@ -87,7 +94,11 @@ export class UserController {
     @CurrentUser() user: AuthUser,
     @Body() body: UpdateProfileDto,
   ) {
-    const data = await this.userService.updateMyProfile(user.userId, body);
+    const data = await this.userService.updateMyProfile(
+      user.userId,
+      user.hospitalId,
+      body,
+    );
     return {
       success: true,
       data,
@@ -102,7 +113,11 @@ export class UserController {
     @CurrentUser() user: AuthUser,
     @Body() body: ChangePasswordDto,
   ) {
-    const data = await this.userService.changePassword(user.userId, body);
+    const data = await this.userService.changePassword(
+      user.userId,
+      user.hospitalId,
+      body,
+    );
     return {
       success: true,
       data,

@@ -18,7 +18,7 @@ import {
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
-import { AuthService } from 'src/auth/auth.service';
+import { AuthService } from '../auth/auth.service';
 import { PaymentService } from '../payment/payment.service';
 import type { PlanDocument } from '../plan/schema/plan.schema';
 

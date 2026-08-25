@@ -9,8 +9,8 @@ import {
   SendVerificationEmailDto,
 } from './dto/auth.dto';
 import { ApiBody } from '@nestjs/swagger';
-import { SkipTenant } from 'src/common/decorator/skip-tenant.decorator';
-import { CurrentHospital } from 'src/common/decorator/current-hospital.decorator';
+import { SkipTenant } from '../common/decorator/skip-tenant.decorator';
+import { CurrentHospital } from '../common/decorator/current-hospital.decorator';
 
 // NOTE: register, login, forgot-password and send-verification-email are
 // intentionally NOT @SkipTenant() — identity is per hospital, so they are
