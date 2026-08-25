@@ -5,12 +5,12 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { BranchDocument } from './schema/branch.schema';
+import { DepartmentDocument } from './schema/department.schema';
 import {
-  CreateBranchDto,
-  ListBranchesQueryDto,
-  UpdateBranchDto,
-} from './dto/branch.dto';
+  CreateDepartmentDto,
+  ListDepartmentsQueryDto,
+  UpdateDepartmentDto,
+} from './dto/department.dto';
 import { PaginationService } from '../common/services/pagination.service';
 import { PaginationMeta } from '../common/types/pagination.type';
 
@@ -19,25 +19,25 @@ function escapeRegex(input: string): string {
 }
 
 @Injectable()
-export class BranchService {
+export class DepartmentService {
   constructor(
-    @InjectModel('Branch')
-    private readonly branchModel: Model<BranchDocument>,
+    @InjectModel('Department')
+    private readonly departmentModel: Model<DepartmentDocument>,
     private readonly paginationService: PaginationService,
   ) {}
 
-  async create(hospitalId: string, body: CreateBranchDto) {
+  async create(hospitalId: string, body: CreateDepartmentDto) {
     await this.ensureNameFree(hospitalId, body.name);
 
-    return this.branchModel.create({
-      ...body,
+    return this.departmentModel.create({
+      name: body.name,
       hospital_id: new Types.ObjectId(hospitalId),
     });
   }
 
   async findAll(
     hospitalId: string,
-    query: ListBranchesQueryDto & { page?: number; limit?: number },
+    query: ListDepartmentsQueryDto & { page?: number; limit?: number },
   ) {
     const { skip, limit, page } = this.paginationService.getPagination(
       query.page,
@@ -51,12 +51,12 @@ export class BranchService {
     if (query.search) filter.name = new RegExp(escapeRegex(query.search), 'i');
 
     const [items, total] = await Promise.all([
-      this.branchModel
+      this.departmentModel
         .find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
-      this.branchModel.countDocuments(filter),
+      this.departmentModel.countDocuments(filter),
     ]);
 
     const pagination: PaginationMeta =
@@ -65,41 +65,41 @@ export class BranchService {
     return { items, pagination };
   }
 
-  /** Ownership-enforced read — another hospital's branch is a 404. */
+  /** Ownership-enforced read — another hospital's department is a 404. */
   async findOne(hospitalId: string, id: string) {
     return this.findScoped(hospitalId, id);
   }
 
-  async update(hospitalId: string, id: string, body: UpdateBranchDto) {
-    const branch = await this.findScoped(hospitalId, id);
+  async update(hospitalId: string, id: string, body: UpdateDepartmentDto) {
+    const department = await this.findScoped(hospitalId, id);
 
-    if (body.name && body.name.toLowerCase() !== branch.name.toLowerCase())
+    if (body.name && body.name.toLowerCase() !== department.name.toLowerCase())
       await this.ensureNameFree(hospitalId, body.name);
 
-    Object.assign(branch, body);
-    await branch.save();
-    return branch;
+    Object.assign(department, body);
+    await department.save();
+    return department;
   }
 
-  /** Soft-delete — history in schedules/appointments stays intact. */
+  /** Soft-delete — doctors referencing the department keep their history. */
   async softDelete(hospitalId: string, id: string) {
-    const branch = await this.findScoped(hospitalId, id);
-    branch.isActive = false;
-    await branch.save();
-    return branch;
+    const department = await this.findScoped(hospitalId, id);
+    department.isActive = false;
+    await department.save();
+    return department;
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   private findScoped(hospitalId: string, id: string) {
-    return this.branchModel
+    return this.departmentModel
       .findOne({
         _id: new Types.ObjectId(id),
         hospital_id: new Types.ObjectId(hospitalId),
       })
-      .then((branch) => {
-        if (!branch) throw new NotFoundException('Branch not found');
-        return branch;
+      .then((department) => {
+        if (!department) throw new NotFoundException('Department not found');
+        return department;
       });
   }
 
@@ -114,10 +114,10 @@ export class BranchService {
     };
     if (excludeId) filter._id = { $ne: excludeId };
 
-    const duplicate = await this.branchModel.findOne(filter);
+    const duplicate = await this.departmentModel.findOne(filter);
     if (duplicate)
       throw new ConflictException(
-        'A branch with this name already exists in this hospital',
+        'A department with this name already exists in this hospital',
       );
   }
 }

@@ -41,4 +41,8 @@ export class Branch {
 
 export const BranchSchema = SchemaFactory.createForClass(Branch);
 
-BranchSchema.index({ hospital_id: 1 });
+// The compound prefix also serves hospital_id-only queries
+BranchSchema.index(
+  { hospital_id: 1, name: 1 },
+  { unique: true, collation: { locale: 'en', strength: 2 } },
+);

@@ -27,4 +27,8 @@ export class Department {
 
 export const DepartmentSchema = SchemaFactory.createForClass(Department);
 
-DepartmentSchema.index({ hospital_id: 1 });
+// The compound prefix also serves hospital_id-only queries
+DepartmentSchema.index(
+  { hospital_id: 1, name: 1 },
+  { unique: true, collation: { locale: 'en', strength: 2 } },
+);

@@ -9,33 +9,33 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { BranchService } from './branch.service';
+import { DepartmentService } from './department.service';
 import {
-  CreateBranchDto,
-  ListBranchesQueryDto,
-  UpdateBranchDto,
-} from './dto/branch.dto';
+  CreateDepartmentDto,
+  ListDepartmentsQueryDto,
+  UpdateDepartmentDto,
+} from './dto/department.dto';
 import { AuthRoles } from '../common/decorator/auth-roles.decorator';
 import { CurrentHospital } from '../common/decorator/current-hospital.decorator';
 
-@ApiTags('Branches')
+@ApiTags('Departments')
 @ApiBearerAuth()
-@Controller('branches')
-export class BranchController {
-  constructor(private readonly branchService: BranchService) {}
+@Controller('departments')
+export class DepartmentController {
+  constructor(private readonly departmentService: DepartmentService) {}
 
   @Post()
   @AuthRoles('hospital_manager')
   async create(
     @CurrentHospital() hospitalId: string,
-    @Body() body: CreateBranchDto,
+    @Body() body: CreateDepartmentDto,
   ) {
-    const data = await this.branchService.create(hospitalId, body);
+    const data = await this.departmentService.create(hospitalId, body);
     return {
       success: true,
       statusCode: 201,
       data,
-      message: 'Branch created successfully',
+      message: 'Department created successfully',
     };
   }
 
@@ -43,14 +43,14 @@ export class BranchController {
   @AuthRoles()
   async findAll(
     @CurrentHospital() hospitalId: string,
-    @Query() query: ListBranchesQueryDto,
+    @Query() query: ListDepartmentsQueryDto,
   ) {
-    const data = await this.branchService.findAll(hospitalId, query);
+    const data = await this.departmentService.findAll(hospitalId, query);
     return {
       success: true,
       statusCode: 200,
       ...data,
-      message: 'Branches fetched successfully',
+      message: 'Departments fetched successfully',
     };
   }
 
@@ -60,12 +60,12 @@ export class BranchController {
     @CurrentHospital() hospitalId: string,
     @Param('id') id: string,
   ) {
-    const data = await this.branchService.findOne(hospitalId, id);
+    const data = await this.departmentService.findOne(hospitalId, id);
     return {
       success: true,
       statusCode: 200,
       data,
-      message: 'Branch fetched successfully',
+      message: 'Department fetched successfully',
     };
   }
 
@@ -74,27 +74,27 @@ export class BranchController {
   async update(
     @CurrentHospital() hospitalId: string,
     @Param('id') id: string,
-    @Body() body: UpdateBranchDto,
+    @Body() body: UpdateDepartmentDto,
   ) {
-    const data = await this.branchService.update(hospitalId, id, body);
+    const data = await this.departmentService.update(hospitalId, id, body);
     return {
       success: true,
       statusCode: 200,
       data,
-      message: 'Branch updated successfully',
+      message: 'Department updated successfully',
     };
   }
 
-  // Soft-delete — the branch becomes inactive, never erased
+  // Soft-delete — the department becomes inactive, never erased
   @Delete(':id')
   @AuthRoles('hospital_manager')
   async remove(@CurrentHospital() hospitalId: string, @Param('id') id: string) {
-    const data = await this.branchService.softDelete(hospitalId, id);
+    const data = await this.departmentService.softDelete(hospitalId, id);
     return {
       success: true,
       statusCode: 200,
       data,
-      message: 'Branch deactivated successfully',
+      message: 'Department deactivated successfully',
     };
   }
 }

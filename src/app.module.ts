@@ -13,7 +13,6 @@ import { TestModule } from './test/test.module';
 import { APP_GUARD } from '@nestjs/core';
 import { TenantGuard } from './common/guards/tenant.guard';
 import { HospitalModule } from './hospital/hospital.module';
-import { BranchController } from './branch/branch.controller';
 import { BranchModule } from './branch/branch.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { HospitalApplicationModule } from './hospital-application/hospital-application.module';
@@ -73,7 +72,7 @@ import { PaymentModule } from './payment/payment.module';
     PlanModule,
     PaymentModule,
   ],
-  controllers: [AppController, BranchController],
+  controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: TenantGuard }],
 })
 export class AppModule {}
