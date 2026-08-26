@@ -30,6 +30,10 @@ export class Doctor {
   @Prop({ type: String, trim: true, maxlength: 1000 })
   bio?: string;
 
+  // Default examination fee collected by reception at appointment confirmation
+  @Prop({ type: Number, min: 0 })
+  examinationFee?: number;
+
   @Prop({
     type: Types.ObjectId,
     ref: 'Hospital',

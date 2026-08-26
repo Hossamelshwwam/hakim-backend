@@ -20,10 +20,11 @@ import { PlatformAdminModule } from './platform-admin/platform-admin.module';
 import { DepartmentModule } from './department/department.module';
 import { DoctorModule } from './doctor/doctor.module';
 import { PatientModule } from './patient/patient.module';
-import { ScheduleModule as ClinicScheduleModule } from './schedule/schedule.module';
+import { ClinicScheduleModule } from './schedule/schedule.module';
 import { AppointmentModule } from './appointment/appointment.module';
 import { PlanModule } from './plan/plan.module';
 import { PaymentModule } from './payment/payment.module';
+import { StaffModule } from './staff/staff.module';
 
 @Module({
   imports: [
@@ -71,6 +72,7 @@ import { PaymentModule } from './payment/payment.module';
     AppointmentModule,
     PlanModule,
     PaymentModule,
+    StaffModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: TenantGuard }],

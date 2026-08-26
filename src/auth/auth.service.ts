@@ -94,18 +94,59 @@ export class AuthService {
 
   async register(body: RegisterDto, hospitalId: string) {
     // Identity is per hospital — the same person may exist in others
-    const duplicates = await this.userModel.findOne({
-      hospital_id: new Types.ObjectId(hospitalId),
-      $or: [{ email: body.email }, { phone: body.phone }],
+    const hospitalOid = new Types.ObjectId(hospitalId);
+
+    const byEmail = await this.userModel.findOne({
+      hospital_id: hospitalOid,
+      email: body.email.toLowerCase(),
     });
-    if (duplicates) {
-      if (duplicates.email === body.email.toLowerCase())
+    const byPhone = await this.userModel.findOne({
+      hospital_id: hospitalOid,
+      phone: body.phone,
+    });
+
+    // Email taken by a DIFFERENT account → hard conflict
+    if (
+      byEmail &&
+      (!byPhone || byEmail._id.toString() !== byPhone._id.toString())
+    )
+      throw new ConflictException('Email already registered in this hospital');
+
+    // Phone matched an existing account (e.g. registered by reception as a
+    // walk-in) → CLAIM it instead of creating a duplicate
+    if (byPhone) {
+      if (byPhone.role !== 'patient')
         throw new ConflictException(
-          'Email already registered in this hospital',
+          'Phone number already registered in this hospital',
         );
-      throw new ConflictException(
-        'Phone number already registered in this hospital',
+      // A claimed & verified account belongs to its owner — never overwrite it
+      if (byPhone.isVerified)
+        throw new ConflictException(
+          'An account with this phone already exists — please log in',
+        );
+
+      byPhone.email = body.email;
+      byPhone.name = body.name;
+      byPhone.passwordHash = await this.hashPassword(body.password);
+      byPhone.isVerified = false;
+
+      const claimTokens = this.userService.generateVerificationToken();
+      byPhone.verificationToken = claimTokens.hashedToken;
+      byPhone.verificationTokenExpiry = claimTokens.verificationTokenExpiry;
+      await byPhone.save();
+
+      await this.sendVerificationEmail(
+        byPhone.email,
+        byPhone.name,
+        claimTokens.token,
       );
+
+      return {
+        id: byPhone._id,
+        name: byPhone.name,
+        email: byPhone.email,
+        role: byPhone.role,
+      };
     }
 
     const passwordHash = await this.hashPassword(body.password);
@@ -117,7 +158,7 @@ export class AuthService {
       passwordHash,
       role: body.role,
       // TenantGuard resolved + validated this hospital from x-tenant-slug
-      hospital_id: new Types.ObjectId(hospitalId),
+      hospital_id: hospitalOid,
     });
 
     const { verificationTokenExpiry, hashedToken, token } =
@@ -141,7 +182,7 @@ export class AuthService {
     // Same email may exist in several hospitals — the tenant decides which
     const user = await this.userModel
       .findOne({
-        email: body.email,
+        email: body.email.toLowerCase(),
         hospital_id: new Types.ObjectId(hospitalId),
       })
       .select('+passwordHash');
@@ -204,7 +245,7 @@ export class AuthService {
 
   async sendVerificationEmailAgain(email: string, hospitalId: string) {
     const user = await this.userModel.findOne({
-      email,
+      email: email.toLowerCase(),
       hospital_id: new Types.ObjectId(hospitalId),
     });
     if (!user) throw new NotFoundException('User not found');
@@ -219,7 +260,7 @@ export class AuthService {
 
   async forgotPassword(email: string, hospitalId: string) {
     const user = await this.userModel.findOne({
-      email,
+      email: email.toLowerCase(),
       hospital_id: new Types.ObjectId(hospitalId),
     });
     if (!user) throw new NotFoundException('User not found');

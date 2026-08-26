@@ -68,6 +68,10 @@ export class Hospital {
   // Paid-through date: end of the last approved payment period
   @Prop({ type: Date })
   currentPeriodEnd?: Date;
+
+  // When true, doctors must confirm "patient presented with me" in the queue
+  @Prop({ type: Boolean, default: false })
+  requireDoctorConfirmation?: boolean;
 }
 
 export const HospitalSchema = SchemaFactory.createForClass(Hospital);

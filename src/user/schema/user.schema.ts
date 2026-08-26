@@ -31,7 +31,7 @@ export class User {
 
   @Prop({
     type: String,
-    enum: ['doctor', 'patient', 'hospital_manager'],
+    enum: ['doctor', 'patient', 'hospital_manager', 'receptionist', 'nurse'],
     default: 'patient',
   })
   role: string;

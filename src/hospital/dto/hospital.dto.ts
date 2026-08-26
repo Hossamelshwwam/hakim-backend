@@ -7,6 +7,7 @@ export const updateHospitalSchema = z.object({
   phone: z.string().min(5).max(20).optional(),
   email: z.string().email().optional(),
   address: z.string().min(3).max(300).optional(),
+  requireDoctorConfirmation: z.boolean().optional(),
 });
 
 export class UpdateHospitalDto extends createZodDto(updateHospitalSchema) {}
